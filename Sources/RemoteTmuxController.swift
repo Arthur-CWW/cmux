@@ -383,6 +383,10 @@ final class RemoteTmuxController {
             autoWelcomeIfNeeded: false, shouldApplyWorkspaceDirectoryCustomization: false
         )
         workspace.isRemoteTmuxMirror = true
+        workspace.remoteTmuxHostIdentity = AppDelegate.shared?
+            .mainWindowContext(for: tabManager)?
+            .cmuxConfigStore?
+            .remoteTmuxVisualIdentity(for: host) ?? host.visualIdentity()
         workspace.remoteTmuxWindowOrderSync = { [weak self, weak workspace] orderedPanelIds, verification in
             guard let self, let workspace else { return false }
             return self.handleMirrorWindowsReordered(
@@ -403,6 +407,17 @@ final class RemoteTmuxController {
         )
         sessionMirrors[key] = mirror
         return mirror
+    }
+
+    func refreshHostIdentities(
+        in tabManager: TabManager,
+        overrides: [String: RemoteTmuxHost.IdentityOverride]
+    ) {
+        for mirror in sessionMirrors.values {
+            guard let workspace = mirror.mirroredWorkspace,
+                  workspace.owningTabManager === tabManager else { continue }
+            workspace.remoteTmuxHostIdentity = mirror.host.visualIdentity(overrides: overrides)
+        }
     }
 
     func closedMirrorHistoryEntry(
